@@ -14,7 +14,7 @@ SSR_PITY = 70
 SR_PITY = 10
 
 # 🖼️ Tampilkan header dengan gambar
-st.image("https://i.ibb.co/CKF0V8w/love-deepspace-banner.jpg", use_container_width=True)
+st.image("https://drive.google.com/file/d/1HF_kmZMz0mIpA6yYgaryBJccK9-eULRz/view?usp=drive_link", use_container_width=True)
 st.title("💖 Love and Deepspace - Gacha Simulator")
 
 # =========================
@@ -176,3 +176,4 @@ try:
 
 except FileNotFoundError:
     st.warning("Belum ada log gacha.")
+
