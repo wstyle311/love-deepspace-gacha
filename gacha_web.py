@@ -137,12 +137,3 @@ elif menu == "Cari Log":
                 st.markdown(color_text(line), unsafe_allow_html=True)
         else:
             st.warning("Tidak ada hasil yang cocok.")
-# read data co
-co2 <- read.csv("data_input/environment_1970f.csv")
-head(co2)
-range(co2$year)
-# memastikan datanya lengkap untuk periode waktunya
-all(1970:2012 == co2$year)
-# untuk mengurutkan data berdasarkan periode waktu
-co2 <- co2 %>% 
-  arrange(year)
