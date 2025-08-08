@@ -1,107 +1,50 @@
 import streamlit as st
 import random
 import json
+import os
 from datetime import datetime
 from io import BytesIO
 
-# 🎨 Warna teks
-SSR_COLOR = "red"
-SR_COLOR = "gold"
-R_COLOR = "white"
+# ===================== CONFIGURASI WEB =====================
+st.set_page_config(page_title="Love and Deepspace Gacha Simulator", layout="wide")
 
-# 🎯 Konstanta pity
+# Header Image
+header_url = "https://drive.google.com/uc?export=view&id=1HF_kmZMz0mIpA6yYgaryBJccK9-eULRz"
+st.image(header_url, use_column_width=True)
+
+st.markdown(
+    """
+    <style>
+    .banner-card {
+        background-color: #2a2a2a;
+        border-radius: 15px;
+        padding: 15px;
+        text-align: center;
+        color: white;
+        box-shadow: 0 4px 10px rgba(0,0,0,0.5);
+        transition: transform 0.2s;
+    }
+    .banner-card:hover {
+        transform: scale(1.02);
+    }
+    .banner-title {
+        font-size: 22px;
+        font-weight: bold;
+        margin-bottom: 10px;
+    }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
+
+# ===================== SISTEM SIMULATOR =====================
+SSR_RATE = 0.015
+SR_RATE = 0.10
 SSR_PITY = 70
 SR_PITY = 10
 
-# 🖼️ Tampilkan header dengan gambar
-st.image("https://drive.google.com/file/d/1HF_kmZMz0mIpA6yYgaryBJccK9-eULRz/view?usp=drive_link", use_container_width=True)
-st.title("💖 Love and Deepspace - Gacha Simulator")
-
-# =========================
-# 📌 Fungsi untuk gacha
-# =========================
-def pull_gacha(banner_type):
-    results = []
-    pity_ssr = st.session_state.player_data.get("pity_ssr", 0)
-    pity_sr = st.session_state.player_data.get("pity_sr", 0)
-
-    for i in range(10):
-        pity_ssr += 1
-        pity_sr += 1
-
-        # Cek pity SSR
-        if pity_ssr >= SSR_PITY:
-            rarity = "SSR"
-            pity_ssr = 0
-        # Cek pity SR
-        elif pity_sr >= SR_PITY:
-            rarity = "SR"
-            pity_sr = 0
-        else:
-            roll = random.randint(1, 1000)
-            if roll <= 10:  # 1% SSR
-                rarity = "SSR"
-                pity_ssr = 0
-            elif roll <= 110:  # 10% SR
-                rarity = "SR"
-                pity_sr = 0
-            else:
-                rarity = "R"
-
-        results.append(rarity)
-
-        # Update jumlah kartu
-        st.session_state.player_data[rarity.lower()] += 1
-
-        # Simpan log
-        log_line = f"{datetime.now()} - {banner_type} - {rarity}\n"
-        with open("gacha_log.txt", "a", encoding="utf-8") as f:
-            f.write(log_line)
-
-    # Update pity
-    st.session_state.player_data["pity_ssr"] = pity_ssr
-    st.session_state.player_data["pity_sr"] = pity_sr
-
-    return results
-
-# =========================
-# 📌 Fitur Input Data Player
-# =========================
-st.header("📥 Input Data Player")
-
-tab1, tab2 = st.tabs(["✏️ Input Manual", "📂 Upload File Save"])
-
-# Input manual
-with tab1:
-    player_name = st.text_input("Nama Player", "")
-    ssr_count = st.number_input("Jumlah SSR", 0)
-    sr_count = st.number_input("Jumlah SR", 0)
-    r_count = st.number_input("Jumlah R", 0)
-    pity_ssr = st.number_input("Pity SSR", 0, SSR_PITY)
-    pity_sr = st.number_input("Pity SR", 0, SR_PITY)
-
-    if st.button("Simpan Data Manual"):
-        st.session_state.player_data = {
-            "name": player_name,
-            "ssr": ssr_count,
-            "sr": sr_count,
-            "r": r_count,
-            "pity_ssr": pity_ssr,
-            "pity_sr": pity_sr
-        }
-        st.success("✅ Data player tersimpan dari input manual!")
-
-# Upload file save JSON
-with tab2:
-    uploaded_file = st.file_uploader("Upload file .json", type="json")
-    if uploaded_file is not None:
-        data = json.load(uploaded_file)
-        st.session_state.player_data = data
-        st.success(f"✅ Data player {data.get('name', '')} berhasil dimuat!")
-
-# =========================
-# 📌 Inisialisasi default data player
-# =========================
+if "log" not in st.session_state:
+    st.session_state.log = []
 if "player_data" not in st.session_state:
     st.session_state.player_data = {
         "name": "",
@@ -112,68 +55,140 @@ if "player_data" not in st.session_state:
         "pity_sr": 0
     }
 
-# =========================
-# 📌 Menu Gacha
-# =========================
-st.header("🎲 Gacha Simulator")
+# ===================== INPUT DATA PLAYER =====================
+st.header("📋 Data Player")
+with st.expander("Masukkan / Ubah Data Player"):
+    name = st.text_input("Nama Player", st.session_state.player_data["name"])
+    ssr_count = st.number_input("Jumlah SSR dimiliki", value=st.session_state.player_data["ssr"])
+    sr_count = st.number_input("Jumlah SR dimiliki", value=st.session_state.player_data["sr"])
+    r_count = st.number_input("Jumlah R dimiliki", value=st.session_state.player_data["r"])
+    pity_ssr = st.number_input("Pity SSR saat ini", value=st.session_state.player_data["pity_ssr"], min_value=0, max_value=SSR_PITY)
+    pity_sr = st.number_input("Pity SR saat ini", value=st.session_state.player_data["pity_sr"], min_value=0, max_value=SR_PITY)
 
+    if st.button("💾 Simpan Data Player"):
+        st.session_state.player_data.update({
+            "name": name,
+            "ssr": ssr_count,
+            "sr": sr_count,
+            "r": r_count,
+            "pity_ssr": pity_ssr,
+            "pity_sr": pity_sr
+        })
+        st.success("Data player berhasil diperbarui!")
+
+# ===================== FILE SAVE SYSTEM =====================
+st.subheader("📂 File Save Player")
 col1, col2 = st.columns(2)
+
 with col1:
-    if st.button("Gacha Banner Event"):
-        results = pull_gacha("Event")
-        for r in results:
-            if r == "SSR":
-                st.markdown(f"<span style='color:{SSR_COLOR}'>⭐ {r}</span>", unsafe_allow_html=True)
-            elif r == "SR":
-                st.markdown(f"<span style='color:{SR_COLOR}'>🌟 {r}</span>", unsafe_allow_html=True)
-            else:
-                st.markdown(f"<span style='color:{R_COLOR}'>✨ {r}</span>", unsafe_allow_html=True)
+    uploaded_file = st.file_uploader("Upload file save (.json)", type="json")
+    if uploaded_file is not None:
+        data = json.load(uploaded_file)
+        st.session_state.player_data = data
+        st.success(f"Data player {data['name']} berhasil dimuat!")
 
 with col2:
-    if st.button("Gacha Banner Standar"):
-        results = pull_gacha("Standar")
-        for r in results:
-            if r == "SSR":
-                st.markdown(f"<span style='color:{SSR_COLOR}'>⭐ {r}</span>", unsafe_allow_html=True)
-            elif r == "SR":
-                st.markdown(f"<span style='color:{SR_COLOR}'>🌟 {r}</span>", unsafe_allow_html=True)
-            else:
-                st.markdown(f"<span style='color:{R_COLOR}'>✨ {r}</span>", unsafe_allow_html=True)
+    if st.button("💾 Download Save"):
+        save_bytes = json.dumps(st.session_state.player_data).encode()
+        st.download_button("Download File Save", save_bytes, file_name="player_save.json")
 
-# =========================
-# 📌 Lihat Data Player
-# =========================
-st.header("📊 Statistik Player")
-st.write(st.session_state.player_data)
+# ===================== SISTEM GACHA =====================
+def do_gacha(pulls, banner):
+    results = []
+    for _ in range(pulls):
+        st.session_state.player_data["pity_ssr"] += 1
+        st.session_state.player_data["pity_sr"] += 1
 
-# =========================
-# 📌 Simpan Progress ke JSON
-# =========================
-st.header("💾 Simpan Progress")
-if st.button("Download Save Data"):
-    save_data = json.dumps(st.session_state.player_data)
-    b = BytesIO(save_data.encode())
-    st.download_button("📥 Download File Save", b, file_name="player_save.json")
-
-# =========================
-# 📌 Lihat Log Gacha
-# =========================
-st.header("📜 Log History")
-try:
-    with open("gacha_log.txt", "r", encoding="utf-8") as f:
-        logs = f.readlines()
-
-    keyword = st.text_input("🔍 Cari log (kata kunci / tanggal)")
-    filtered_logs = [l for l in logs if keyword.lower() in l.lower()] if keyword else logs
-
-    for line in filtered_logs:
-        if "SSR" in line:
-            st.markdown(f"<span style='color:{SSR_COLOR}'>{line}</span>", unsafe_allow_html=True)
-        elif "SR" in line:
-            st.markdown(f"<span style='color:{SR_COLOR}'>{line}</span>", unsafe_allow_html=True)
+        # Pity SSR
+        if st.session_state.player_data["pity_ssr"] >= SSR_PITY:
+            rarity = "SSR"
+        elif st.session_state.player_data["pity_sr"] >= SR_PITY:
+            rarity = "SR"
         else:
-            st.text(line)
+            roll = random.random()
+            if roll < SSR_RATE:
+                rarity = "SSR"
+            elif roll < SSR_RATE + SR_RATE:
+                rarity = "SR"
+            else:
+                rarity = "R"
 
-except FileNotFoundError:
-    st.warning("Belum ada log gacha.")
+        # Reset pity jika SSR/SR keluar
+        if rarity == "SSR":
+            st.session_state.player_data["ssr"] += 1
+            st.session_state.player_data["pity_ssr"] = 0
+            st.session_state.player_data["pity_sr"] = 0
+        elif rarity == "SR":
+            st.session_state.player_data["sr"] += 1
+            st.session_state.player_data["pity_sr"] = 0
+        else:
+            st.session_state.player_data["r"] += 1
 
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log_entry = f"{timestamp} | {banner} | {rarity}"
+        st.session_state.log.append(log_entry)
+
+        # Simpan ke file log
+        with open("gacha_log.txt", "a", encoding="utf-8") as f:
+            f.write(log_entry + "\n")
+
+        results.append(rarity)
+    return results
+
+# ===================== PILIH BANNER =====================
+st.header("🎯 Pilih Banner")
+col_event, col_standard = st.columns(2)
+
+with col_event:
+    st.markdown('<div class="banner-card"><div class="banner-title">Banner Event</div>', unsafe_allow_html=True)
+    if st.button("1x Pull Event"):
+        do_gacha(1, "Event")
+    if st.button("10x Pull Event"):
+        do_gacha(10, "Event")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+with col_standard:
+    st.markdown('<div class="banner-card"><div class="banner-title">Banner Standar</div>', unsafe_allow_html=True)
+    if st.button("1x Pull Standar"):
+        do_gacha(1, "Standar")
+    if st.button("10x Pull Standar"):
+        do_gacha(10, "Standar")
+    st.markdown('</div>', unsafe_allow_html=True)
+
+# ===================== HISTORY LOG =====================
+st.header("📜 Log History")
+with st.expander("Lihat Semua Log"):
+    for entry in reversed(st.session_state.log):
+        if "SSR" in entry:
+            st.markdown(f"<span style='color: gold; font-weight: bold;'>{entry}</span>", unsafe_allow_html=True)
+        elif "SR" in entry:
+            st.markdown(f"<span style='color: violet;'>{entry}</span>", unsafe_allow_html=True)
+        else:
+            st.text(entry)
+
+# ===================== PENCARIAN LOG =====================
+st.subheader("🔍 Cari di Log")
+keyword = st.text_input("Kata kunci (contoh: SSR)")
+date_filter = st.date_input("Filter Tanggal", value=None)
+
+if st.button("Cari Log"):
+    with open("gacha_log.txt", "r", encoding="utf-8") as f:
+        lines = f.readlines()
+    filtered = []
+    for line in lines:
+        if keyword and keyword.lower() not in line.lower():
+            continue
+        if date_filter and date_filter.strftime("%Y-%m-%d") not in line:
+            continue
+        filtered.append(line.strip())
+
+    if filtered:
+        for entry in filtered:
+            if "SSR" in entry:
+                st.markdown(f"<span style='color: gold; font-weight: bold;'>{entry}</span>", unsafe_allow_html=True)
+            elif "SR" in entry:
+                st.markdown(f"<span style='color: violet;'>{entry}</span>", unsafe_allow_html=True)
+            else:
+                st.text(entry)
+    else:
+        st.warning("Tidak ada hasil ditemukan.")
